@@ -64,8 +64,6 @@ schema.pre('save', function (next) {
 });
 
 schema.methods.checkPassword = function (passwordToCheck) {
-  console.log('password', this.password);
-  console.log('passwordToCheck', passwordToCheck);
   return bcrypt.compare(passwordToCheck, this.password);
 };
 

@@ -1,31 +1,31 @@
 const createError = require('http-errors');
-const Post = require('../models/post.model');
+const jwt = require('jsonwebtoken');
+const User = require('../models/user.model');
 
 module.exports.auth = function (req, res, next) {
-  if (req.isAuthenticated()) {
-    next();
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    const token = req.headers.authorization.split(' ')[1];
+    jwt.verify(token, process.env.SESSION_SECRET, function (err, decoded) {
+      if (err) {
+        next(createError(401, 'user is not authenticated'));
+      } else {
+        User.findById(decoded.sub)
+          .then((user) => {
+            if (user) {
+              if (user.active) {
+                req.user = user;
+                next();
+              } else {
+                next(createError(401, 'The user has not validated the email.'));
+              }
+            } else {
+              next(createError(401, 'user is not authenticated'));
+            }
+          })
+          .catch(next);
+      }
+    });
   } else {
     next(createError(401, 'user is not authenticated'));
   }
-};
-
-module.exports.self = function (req, res, next) {
-  if (req.params.id == req.user.id) {
-    next();
-  } else {
-    next(createError(403, 'forbidden'));
-  }
-};
-
-module.exports.postOwner = function (req, res, next) {
-  Post.findById(req.params.id)
-    .then((post) => {
-      if (post) {
-        req.post = post;
-        next();
-      } else {
-        next(createError(404, 'post not found'));
-      }
-    })
-    .catch(next);
 };

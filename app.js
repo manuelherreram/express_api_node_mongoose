@@ -1,18 +1,20 @@
-require('dotenv').config();
-require('./config/db.config');
+const createError = require("http-errors");
+const express = require("express");
+const mongoose = require("mongoose");
+const logger = require("morgan");
+const path = require("path");
+const passport = require("passport");
 
-const createError = require('http-errors');
-const express = require('express');
-const mongoose = require('mongoose');
-const logger = require('morgan');
-const passport = require('passport');
-const cors = require('./config/cors.config');
-const session = require('./config/session.config');
+require("dotenv").config();
+require("./config/passport.config");
+require("./config/db.config");
+const cors = require("./config/cors.config");
+const session = require("./config/session.config");
 
 const app = express();
 
 /** Middlewares */
-app.use(logger('dev'));
+app.use(logger("dev"));
 app.use(session);
 app.use(cors);
 app.use(passport.initialize());
@@ -20,21 +22,25 @@ app.use(passport.session());
 app.use(express.json());
 
 /** Routes */
-const routes = require('./config/routes.config');
-app.use('/api', routes);
+const routes = require("./config/routes.config");
+app.use("/api", routes);
+app.use(express.static(path.join(__dirname, "public")));
 
 /** Error Handling */
 app.use((req, res, next) => {
-  next(createError(404, 'Route not found'));
+  next(createError(404, "Route not found"));
 });
 
 app.use((error, req, res, next) => {
   if (error instanceof mongoose.Error.ValidationError) {
     error = createError(400, error);
-  } else if (error instanceof mongoose.Error.CastError && error.message.includes('_id')) {
-    error = createError(404, 'Resource not found');
-  } else if (error.message.includes('E11000')) {
-    error = createError(409, 'Duplicated');
+  } else if (
+    error instanceof mongoose.Error.CastError &&
+    error.message.includes("_id")
+  ) {
+    error = createError(404, "Resource not found");
+  } else if (error.message.includes("E11000")) {
+    error = createError(409, "Duplicated");
   } else if (!error.status) {
     error = createError(500, error);
   }
@@ -56,6 +62,7 @@ app.use((error, req, res, next) => {
 });
 
 const port = process.env.PORT || 8000;
+
 app.listen(port, () => {
   console.info(`Application running at port ${port}`);
 });
